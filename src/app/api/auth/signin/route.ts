@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     // JWT üret
     const token = generateToken({
-      id: user.id,
+      id: String(user.id),
       email: user.email,
       name: user.name,
     });

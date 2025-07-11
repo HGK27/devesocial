@@ -1,13 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const accountId = searchParams.get('accountId');
+    const accountId = searchParams.get("accountId");
 
     if (!accountId) {
-      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Account ID is required" },
+        { status: 400 }
+      );
     }
 
     // Get account info
@@ -16,40 +19,62 @@ export async function GET(request: NextRequest) {
     });
 
     if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
     // Fetch TikTok user info
-    const userResponse = await fetch('https://open.tiktokapis.com/v2/user/info/', {
-      headers: {
-        'Authorization': `Bearer ${account.accessToken}`,
-      },
-    });
+    const userResponse = await fetch(
+      "https://open.tiktokapis.com/v2/user/info/",
+      {
+        headers: {
+          Authorization: `Bearer ${account.accessToken}`,
+        },
+      }
+    );
 
     if (!userResponse.ok) {
-      throw new Error('Failed to fetch TikTok user info');
+      throw new Error("Failed to fetch TikTok user info");
     }
 
     const userData = await userResponse.json();
 
     // Fetch TikTok videos for engagement calculation
-    const videosResponse = await fetch('https://open.tiktokapis.com/v2/video/list/', {
-      headers: {
-        'Authorization': `Bearer ${account.accessToken}`,
-      },
-    });
+    const videosResponse = await fetch(
+      "https://open.tiktokapis.com/v2/video/list/",
+      {
+        headers: {
+          Authorization: `Bearer ${account.accessToken}`,
+        },
+      }
+    );
 
     if (!videosResponse.ok) {
-      throw new Error('Failed to fetch TikTok videos');
+      throw new Error("Failed to fetch TikTok videos");
     }
 
     const videosData = await videosResponse.json();
 
     // Calculate total engagement
-    const totalViews = videosData.data?.videos?.reduce((sum: number, video: any) => sum + (video.stats?.view_count || 0), 0) || 0;
-    const totalLikes = videosData.data?.videos?.reduce((sum: number, video: any) => sum + (video.stats?.like_count || 0), 0) || 0;
-    const totalComments = videosData.data?.videos?.reduce((sum: number, video: any) => sum + (video.stats?.comment_count || 0), 0) || 0;
-    const totalShares = videosData.data?.videos?.reduce((sum: number, video: any) => sum + (video.stats?.share_count || 0), 0) || 0;
+    const totalViews =
+      videosData.data?.videos?.reduce(
+        (sum: number, video: any) => sum + (video.stats?.view_count || 0),
+        0
+      ) || 0;
+    const totalLikes =
+      videosData.data?.videos?.reduce(
+        (sum: number, video: any) => sum + (video.stats?.like_count || 0),
+        0
+      ) || 0;
+    const totalComments =
+      videosData.data?.videos?.reduce(
+        (sum: number, video: any) => sum + (video.stats?.comment_count || 0),
+        0
+      ) || 0;
+    const totalShares =
+      videosData.data?.videos?.reduce(
+        (sum: number, video: any) => sum + (video.stats?.share_count || 0),
+        0
+      ) || 0;
 
     const followerCount = userData.data?.user?.follower_count || 0;
 
@@ -63,7 +88,9 @@ export async function GET(request: NextRequest) {
       likes: totalLikes,
       comments: totalComments,
       shares: totalShares,
-      engagement: ((totalLikes + totalComments + totalShares) / (followerCount || 1)) * 100,
+      engagement:
+        ((totalLikes + totalComments + totalShares) / (followerCount || 1)) *
+        100,
     };
 
     // Save to database
@@ -80,10 +107,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(savedAnalytics);
   } catch (error) {
-    console.error('TikTok analytics error:', error);
+    console.error("TikTok analytics error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch TikTok analytics' },
+      { error: "Failed to fetch TikTok analytics" },
       { status: 500 }
     );
   }
-} 
+}

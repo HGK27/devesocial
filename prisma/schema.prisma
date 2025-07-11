@@ -8,27 +8,49 @@ datasource db {
   relationMode = "prisma"
 }
 
-
 model User {
-  id        Int         @id @default(autoincrement())
-  name      String      @db.VarChar(100)
-  email     String      @unique(map: "email_unique") @db.VarChar(150)
-  password  String      @db.VarChar(150)
-  createdAt DateTime    @default(now())
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(150)
+  password  String   @db.VarChar(150)
+  createdAt DateTime @default(now())
 
-  tokens    UserToken[] @relation("UserTokens")
-
-  @@index([name], map: "name_index")
+  accounts  Account[]
+  sessions  Session[]
 }
 
-model UserToken {
-  id          Int      @id @default(autoincrement())
-  token       String   @db.VarChar(255)
-  createdAt   DateTime @default(now())
-  tokenExpiry DateTime
-  userId      Int
+model Account {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  type               String   @db.VarChar(50)
+  provider           String   @db.VarChar(100)
+  providerAccountId  String   @db.VarChar(100)
+  refresh_token      String?  @db.VarChar(500)
+  access_token       String?  @db.VarChar(500)
+  expires_at         Int?
+  token_type         String?  @db.VarChar(50)
+  scope              String?  @db.VarChar(250)
+  id_token           String?  @db.VarChar(1000)
+  session_state      String?  @db.VarChar(100)
 
-  user        User     @relation(fields: [userId], references: [id], name: "UserTokens")
+  user User @relation(fields: [userId], references: [id])
 
-  @@index([token], map: "token_index")
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique @db.VarChar(255)
+  userId       Int
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(128)
+  token      String   @db.VarChar(128) @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }

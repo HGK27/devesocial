@@ -1,14 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { google } from 'googleapis';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { google } from "googleapis";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const accountId = searchParams.get('accountId');
+    const accountId = searchParams.get("accountId");
 
     if (!accountId) {
-      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Account ID is required" },
+        { status: 400 }
+      );
     }
 
     // Get account info
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
     const oauth2Client = new google.auth.OAuth2();
@@ -26,46 +29,60 @@ export async function GET(request: NextRequest) {
       refresh_token: account.refreshToken,
     });
 
-    const youtube = google.youtube('v3');
+    const youtube = google.youtube("v3");
 
     // Get channel statistics
     const channelsResponse = await youtube.channels.list({
       auth: oauth2Client,
-      part: ['statistics'],
+      part: ["statistics"],
       id: [account.youtubeChannelId],
     });
 
     const channel = channelsResponse.data.items?.[0];
     if (!channel?.statistics) {
-      throw new Error('Failed to fetch channel statistics');
+      throw new Error("Failed to fetch channel statistics");
     }
 
     // Get videos for engagement calculation
     const videosResponse = await youtube.search.list({
       auth: oauth2Client,
-      part: ['id'],
+      part: ["id"],
       channelId: account.youtubeChannelId,
-      type: ['video'],
+      type: ["video"],
       maxResults: 50,
     });
 
-    const videoIds = videosResponse.data.items?.map(item => item.id?.videoId).filter(Boolean) || [];
+    const videoIds =
+      videosResponse.data.items
+        ?.map((item) => item.id?.videoId)
+        .filter(Boolean) || [];
 
     if (videoIds.length > 0) {
       const videosStatsResponse = await youtube.videos.list({
         auth: oauth2Client,
-        part: ['statistics'],
+        part: ["statistics"],
         id: videoIds,
       });
 
       const videos = videosStatsResponse.data.items || [];
 
       // Calculate total engagement
-      const totalViews = videos.reduce((sum, video) => sum + parseInt(video.statistics?.viewCount || '0'), 0);
-      const totalLikes = videos.reduce((sum, video) => sum + parseInt(video.statistics?.likeCount || '0'), 0);
-      const totalComments = videos.reduce((sum, video) => sum + parseInt(video.statistics?.commentCount || '0'), 0);
+      const totalViews = videos.reduce(
+        (sum, video) => sum + parseInt(video.statistics?.viewCount || "0"),
+        0
+      );
+      const totalLikes = videos.reduce(
+        (sum, video) => sum + parseInt(video.statistics?.likeCount || "0"),
+        0
+      );
+      const totalComments = videos.reduce(
+        (sum, video) => sum + parseInt(video.statistics?.commentCount || "0"),
+        0
+      );
 
-      const subscriberCount = parseInt(channel.statistics.subscriberCount || '0');
+      const subscriberCount = parseInt(
+        channel.statistics.subscriberCount || "0"
+      );
 
       // Prepare analytics data
       const analyticsData = {
@@ -78,7 +95,8 @@ export async function GET(request: NextRequest) {
         comments: totalComments,
         shares: 0, // YouTube doesn't provide share count in basic API
         watchTime: 0, // Would need Analytics API for this
-        engagement: ((totalLikes + totalComments) / (subscriberCount || 1)) * 100,
+        engagement:
+          ((totalLikes + totalComments) / (subscriberCount || 1)) * 100,
       };
 
       // Save to database
@@ -100,8 +118,8 @@ export async function GET(request: NextRequest) {
         youtubeAccountId: accountId,
         userId: account.userId,
         date: new Date(),
-        subscribers: parseInt(channel.statistics.subscriberCount || '0'),
-        views: parseInt(channel.statistics.viewCount || '0'),
+        subscribers: parseInt(channel.statistics.subscriberCount || "0"),
+        views: parseInt(channel.statistics.viewCount || "0"),
         likes: 0,
         comments: 0,
         shares: 0,
@@ -123,10 +141,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(savedAnalytics);
     }
   } catch (error) {
-    console.error('YouTube analytics error:', error);
+    console.error("YouTube analytics error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch YouTube analytics' },
+      { error: "Failed to fetch YouTube analytics" },
       { status: 500 }
     );
   }
-} 
+}

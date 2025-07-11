@@ -1,20 +1,20 @@
+// app/login/page.tsx
 "use client";
+import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./loginStyle.module.scss";
-import { login } from "@/services/loginService";
 import Link from "next/link";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
     // Email validation (simple regex)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -28,16 +28,16 @@ export default function LoginPage() {
       return;
     }
 
-    const res = await login({
+    const res = await signIn("credentials", {
+      redirect: false,
       email,
       password,
     });
-    if (res?.error) {
-      setError(res.error);
-    } else {
-      console.log(res);
-      localStorage.setItem("token", res.token);
+
+    if (res?.ok) {
       router.push("/dashboard");
+    } else {
+      alert("Login failed");
     }
   };
 

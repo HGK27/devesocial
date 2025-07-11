@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
+  session: { strategy: "jwt" },
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -15,47 +18,45 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await prisma.users.findUnique({
+
+        const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
         if (!user) return null;
+
         const isValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
         if (!isValid) return null;
-        return { id: user.id + "", email: user.email, name: user.name };
+
+        return { id: user.id + "", name: user.name, email: user.email };
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
   callbacks: {
     async jwt({ token, user }) {
-      // On sign in, add user info to the token
       if (user) {
+        // login esnasında token'a user.id ekliyoruz
         token.id = user.id;
         token.email = user.email;
-        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }) {
-      // Add token fields to session object
-      if (token && session.user) {
-        (session.user as { id?: string; email?: string; name?: string }).id =
-          token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
+      // token içindeki bilgileri session.user’a ekle
+      if (!session.user) {
+        session.user = {};
       }
+      (session.user as { id?: string; email?: string; name?: string }).id =
+        token.id as string;
+      (session.user as { id?: string; email?: string; name?: string }).email =
+        token.email as string;
+      (session.user as { id?: string; email?: string; name?: string }).name =
+        token.name as string;
       return session;
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export { handler as GET, handler as POST };
