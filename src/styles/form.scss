@@ -1,0 +1,41 @@
+input,
+select,
+textarea,
+button {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 0.4rem;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+input:focus,
+textarea:focus {
+    border-color: #0070f3;
+    outline: none;
+}
+
+.btn-blue {
+    background-color: #0070f3;
+    color: white;
+    cursor: pointer;
+    border: none;
+
+    &:hover {
+        background-color: #0059c1;
+    }
+}
+
+.btn-none {
+    background: none;
+    color: #fff;
+    cursor: pointer;
+    border: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

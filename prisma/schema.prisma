@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+
+model User {
+  id        Int         @id @default(autoincrement())
+  name      String      @db.VarChar(100)
+  email     String      @unique(map: "email_unique") @db.VarChar(150)
+  password  String      @db.VarChar(150)
+  createdAt DateTime    @default(now())
+
+  tokens    UserToken[] @relation("UserTokens")
+
+  @@index([name], map: "name_index")
+}
+
+model UserToken {
+  id          Int      @id @default(autoincrement())
+  token       String   @db.VarChar(255)
+  createdAt   DateTime @default(now())
+  tokenExpiry DateTime
+  userId      Int
+
+  user        User     @relation(fields: [userId], references: [id], name: "UserTokens")
+
+  @@index([token], map: "token_index")
+}

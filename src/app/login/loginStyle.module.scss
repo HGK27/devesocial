@@ -1,0 +1,15 @@
+.loginCol {
+    flex-direction: column;
+    margin-top: 50px;
+
+    .loginForm {
+        display: flex;
+        flex-direction: column;
+        width: 400px;
+
+        input,
+        button {
+            margin: 20px 0;
+        }
+    }
+}
